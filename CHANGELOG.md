@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.1] - 2026-01-30
+
+### Fixed
+- **`update_recipe` notes** - Added required `title` field to notes schema (was causing HTTP 422)
+- **`create_recipe`** - Changed from PATCH to GET+PUT pattern (was causing HTTP 500 when adding ingredients/instructions)
+- **`get_categories`** - Now explains Mealie API behavior when no category organizers exist, suggests `get_recipes_by_category` as alternative
+
+---
+
 ## [1.2.0] - 2026-01-30
 
 ### Added
