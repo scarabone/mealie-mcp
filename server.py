@@ -728,6 +728,11 @@ def create_recipe(
 
     slug = result if isinstance(result, str) else result.get("slug", name.lower().replace(" ", "-"))
 
+    # Fetch the created recipe to get its full structure (required for PUT)
+    recipe = api_request(f"/recipes/{slug}")
+    if "error" in recipe:
+        return f"Recipe created but failed to fetch: {recipe['error']}"
+
     # Prepare ingredients
     recipe_ingredients = []
     for ing in ingredients:
@@ -745,19 +750,18 @@ def create_recipe(
             "text": step
         })
 
-    # Update with full data
-    update_data = {
-        "name": name,
-        "description": description,
-        "prepTime": prep_time or None,
-        "performTime": cook_time or None,
-        "totalTime": total_time or None,
-        "recipeYield": servings or None,
-        "recipeIngredient": recipe_ingredients,
-        "recipeInstructions": recipe_instructions
-    }
+    # Update the recipe object with provided data
+    recipe["name"] = name
+    recipe["description"] = description
+    recipe["prepTime"] = prep_time or None
+    recipe["performTime"] = cook_time or None
+    recipe["totalTime"] = total_time or None
+    recipe["recipeYield"] = servings or None
+    recipe["recipeIngredient"] = recipe_ingredients
+    recipe["recipeInstructions"] = recipe_instructions
 
-    update_result = api_request(f"/recipes/{slug}", "PATCH", update_data)
+    # PUT the complete recipe
+    update_result = api_request(f"/recipes/{slug}", "PUT", recipe)
     if "error" in update_result:
         return f"Recipe created but failed to update: {update_result['error']}"
 
@@ -925,6 +929,7 @@ def update_recipe(
         for note in notes:
             recipe_notes.append({
                 "id": str(uuid.uuid4()),
+                "title": "",  # Required by Mealie API
                 "text": note
             })
         recipe["notes"] = recipe_notes
@@ -1474,7 +1479,7 @@ def get_categories() -> str:
 
     categories = result.get("items", [])
     if not categories:
-        return "No categories found."
+        return "No category organizers found.\n\nNote: Mealie stores categories per-recipe rather than as organizers. Use `get_recipes_by_category(category_slug)` to find recipes by category (e.g., 'main-dish', 'side-dish', 'dessert')."
 
     output = ["# Recipe Categories\n"]
     for cat in sorted(categories, key=lambda c: c.get("name", "")):
