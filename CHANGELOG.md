@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0] - 2026-01-30
+
+### Added
+- **MCP Prompts** - Teach Claude Desktop how to use mealie tools contextually:
+  - `mealie_assistant` - General guide mapping user requests to tools
+  - `weekly_meal_planning` - Step-by-step meal planning workflow
+  - `whats_for_dinner` - Quick response flow for dinner questions
+
+### How Prompts Work
+Prompts are exposed via the MCP protocol. When Claude Desktop connects,
+it learns how to interpret natural language requests like:
+- "What should I make for dinner?" → checks today's plan, then suggests
+- "Plan my week" → uses get_meal_plan, identifies gaps, fills with plan_meal
+- "Quick chicken recipe" → search_recipes with time constraints
+
+---
+
 ## [1.1.0] - 2026-01-30
 
 ### Added

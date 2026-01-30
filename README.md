@@ -146,6 +146,18 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_statistics` | Mealie instance statistics |
 | `clear_cache` | Clear all cached data |
 
+## MCP Prompts
+
+The server includes prompts that teach Claude how to use the tools contextually:
+
+| Prompt | Purpose |
+|--------|---------|
+| `mealie_assistant` | General guide: maps natural requests to appropriate tools |
+| `weekly_meal_planning` | Step-by-step workflow for planning a week of meals |
+| `whats_for_dinner` | Quick response flow for "what should I make?" questions |
+
+These prompts are automatically available to Claude Desktop when connected.
+
 ## Usage Examples
 
 ### Search
