@@ -1513,6 +1513,126 @@ def get_recipes_by_category(category: str, limit: int = 20) -> str:
 
 
 # -----------------------------------------------------------------------------
+# MCP Prompts - Teach Claude how to use mealie tools
+# -----------------------------------------------------------------------------
+@mcp.prompt()
+def mealie_assistant() -> str:
+    """
+    Instructions for acting as a meal planning and recipe assistant.
+    Use this prompt to understand how to help users with cooking, meal planning, and grocery shopping.
+    """
+    return """You have access to a Mealie recipe manager with 800+ recipes. Here's how to help users:
+
+## Understanding Requests
+
+| User Says | Tool to Use |
+|-----------|-------------|
+| "What should I make for dinner?" | `get_random_recipe` or `search_recipes` with their preferences |
+| "What's for dinner tonight?" | `get_todays_meals` |
+| "Plan my meals for the week" | `get_meal_plan` then help fill gaps with `plan_meal` or `plan_random_meal` |
+| "Find me a chicken recipe" | `search_recipes` with "chicken" |
+| "Quick dinner under 30 minutes" | `search_recipes` with "quick under 30 min" |
+| "Add X to the meal plan" | First `search_recipes` to find it, then `plan_meal` with the slug |
+| "What do I need to buy?" | `get_shopping_list` |
+| "Add ingredients for X to my list" | `add_recipe_to_shopping_list` |
+| "Save this recipe" | `create_recipe_from_url` if they provide a URL |
+
+## Workflow Tips
+
+1. **Recipe Discovery**: Start with `search_recipes` for specific needs, `get_random_recipe` for inspiration
+2. **Always provide links**: Every recipe has a clickable URL - include it so users can see photos/details
+3. **Meal Planning**: Check `get_todays_meals` or `get_meal_plan` first to see what's already planned
+4. **Shopping Flow**: After planning meals, offer to add ingredients to shopping list
+5. **Favorites**: Check `get_favorites` for recipes the user has marked as favorites
+
+## Natural Language Search
+
+The search understands:
+- Ingredients: "chicken", "garlic", "pasta"
+- Time constraints: "under 30 minutes", "quick", "fast"
+- Sources: "nytimes", "bonappetit", "serious eats"
+- Meal types: "breakfast", "dinner", "dessert"
+- Combine them: "quick chicken dinner under 30 min"
+
+## Recipe Slugs
+
+Many tools need a recipe "slug" (URL-friendly name like "chicken-piccata"). Get slugs from:
+- Search results
+- Meal plan entries
+- Recipe listings
+
+Always search first if you only have the recipe name."""
+
+
+@mcp.prompt()
+def weekly_meal_planning() -> str:
+    """
+    Guide for helping users plan a full week of meals.
+    """
+    return """Help the user plan meals for the week:
+
+## Step 1: Check Current Plan
+Use `get_meal_plan` with days=7 to see what's already scheduled.
+
+## Step 2: Identify Gaps
+Note which days/meals are empty (breakfast, lunch, dinner).
+
+## Step 3: Gather Preferences
+Ask about:
+- Dietary restrictions
+- Time available for cooking each day
+- Ingredients they want to use up
+- Variety preferences (don't repeat proteins, etc.)
+
+## Step 4: Fill the Plan
+For each gap:
+- `search_recipes` based on their preferences
+- `plan_meal` to add specific recipes
+- `plan_random_meal` for variety/surprise
+
+## Step 5: Shopping List
+After planning, ask if they want ingredients added to shopping list.
+Use `add_recipe_to_shopping_list` for each planned recipe.
+
+## Pro Tips
+- Weeknight dinners: search for "quick" or "under 30 min"
+- Weekend cooking: can suggest more complex recipes
+- Batch cooking: suggest recipes that make good leftovers
+- Check `get_favorites` for reliable go-to meals"""
+
+
+@mcp.prompt()
+def whats_for_dinner() -> str:
+    """
+    Quick response guide when user asks what to make for dinner.
+    """
+    return """When asked "what should I make for dinner?" or similar:
+
+## Quick Response Flow
+
+1. **Check if there's already a plan**: `get_todays_meals`
+   - If planned: Show what's scheduled with the recipe link
+
+2. **If nothing planned, ask ONE clarifying question**:
+   - "Quick weeknight meal or something more involved?"
+   - "Any ingredients you want to use?"
+   - "Any cuisine preference?"
+
+3. **Search or Random**:
+   - If they have preferences: `search_recipes`
+   - If they want surprise: `get_random_recipe`
+   - Show 2-3 options with links
+
+4. **Offer to plan it**: "Want me to add this to tonight's meal plan?"
+   - Use `plan_meal` with today's date
+
+5. **Offer shopping help**: "Need ingredients added to your shopping list?"
+   - Use `add_recipe_to_shopping_list`
+
+Keep it conversational and quick - they're hungry!"""
+
+
+# -----------------------------------------------------------------------------
 # Startup validation
 # -----------------------------------------------------------------------------
 def validate_config() -> bool:
