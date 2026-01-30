@@ -1,0 +1,23 @@
+[Unit]
+Description=Mealie MCP Server (HTTP/SSE)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/mcp-servers/mealie
+ExecStart=/opt/mcp-servers/mealie/run-proxy.sh
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mealie-mcp
+
+# Allow writing to log file
+ReadWritePaths=/opt/mcp-servers/mealie /var/log
+
+[Install]
+WantedBy=multi-user.target
