@@ -94,6 +94,8 @@ def api_request(
                 resp = client.patch(url, json=data)
             elif method == "DELETE":
                 resp = client.delete(url)
+            elif method == "PUT":
+                resp = client.put(url, json=data)
             else:
                 return {"error": f"Unsupported method: {method}"}
 
@@ -826,6 +828,122 @@ def apply_tags(slug: str, tags: list[str]) -> str:
     if created_tags:
         output.append(f"Created new tags: {', '.join(created_tags)}")
     output.append(f"Applied: {', '.join(tags)}")
+    output.append(f"\nURL: {build_recipe_url(slug)}")
+
+    return "\n".join(output)
+
+
+@mcp.tool()
+def update_recipe(
+    slug: str,
+    name: str | None = None,
+    description: str | None = None,
+    ingredients: list[str] | None = None,
+    instructions: list[str] | None = None,
+    prep_time: str | None = None,
+    cook_time: str | None = None,
+    total_time: str | None = None,
+    servings: str | None = None,
+    notes: list[str] | None = None
+) -> str:
+    """
+    Update an existing recipe. Only provided fields are updated.
+
+    Args:
+        slug: Recipe slug (required)
+        name: New recipe name
+        description: New description
+        ingredients: New list of ingredients (replaces existing)
+        instructions: New list of instruction steps (replaces existing)
+        prep_time: New prep time (e.g., "15 minutes")
+        cook_time: New cook time (e.g., "30 minutes")
+        total_time: New total time
+        servings: New yield (e.g., "4 servings")
+        notes: New list of notes (replaces existing)
+    """
+    import uuid
+
+    # Fetch current recipe
+    recipe = api_request(f"/recipes/{slug}")
+    if "error" in recipe:
+        return f"Error fetching recipe: {recipe['error']}"
+
+    # Track what we're changing
+    changes = []
+
+    # Update simple fields
+    if name is not None:
+        recipe["name"] = name
+        changes.append("name")
+
+    if description is not None:
+        recipe["description"] = description
+        changes.append("description")
+
+    if prep_time is not None:
+        recipe["prepTime"] = prep_time if prep_time else None
+        changes.append("prep time")
+
+    if cook_time is not None:
+        recipe["performTime"] = cook_time if cook_time else None
+        changes.append("cook time")
+
+    if total_time is not None:
+        recipe["totalTime"] = total_time if total_time else None
+        changes.append("total time")
+
+    if servings is not None:
+        recipe["recipeYield"] = servings if servings else None
+        changes.append("servings")
+
+    # Update ingredients (replace entire list)
+    if ingredients is not None:
+        recipe_ingredients = []
+        for ing in ingredients:
+            recipe_ingredients.append({
+                "referenceId": str(uuid.uuid4()),
+                "note": ing,
+                "display": ing
+            })
+        recipe["recipeIngredient"] = recipe_ingredients
+        changes.append(f"ingredients ({len(ingredients)} items)")
+
+    # Update instructions (replace entire list)
+    if instructions is not None:
+        recipe_instructions = []
+        for step in instructions:
+            recipe_instructions.append({
+                "id": str(uuid.uuid4()),
+                "text": step
+            })
+        recipe["recipeInstructions"] = recipe_instructions
+        changes.append(f"instructions ({len(instructions)} steps)")
+
+    # Update notes (replace entire list)
+    if notes is not None:
+        recipe_notes = []
+        for note in notes:
+            recipe_notes.append({
+                "id": str(uuid.uuid4()),
+                "text": note
+            })
+        recipe["notes"] = recipe_notes
+        changes.append(f"notes ({len(notes)} items)")
+
+    if not changes:
+        return "No changes provided. Specify at least one field to update."
+
+    # PUT the updated recipe
+    result = api_request(f"/recipes/{slug}", "PUT", recipe)
+    if "error" in result:
+        return f"Error updating recipe: {result['error']}"
+
+    # Invalidate cache
+    _cache.invalidate(slug)
+
+    recipe_name = result.get("name", name or slug)
+    output = [f"Recipe updated: **{recipe_name}**\n"]
+    output.append(f"Changes: {', '.join(changes)}")
     output.append(f"\nURL: {build_recipe_url(slug)}")
 
     return "\n".join(output)

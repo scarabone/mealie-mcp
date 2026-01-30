@@ -7,7 +7,8 @@ MCP server for interacting with a Mealie recipe manager instance. Provides natur
 - **Natural language search** - Search by ingredients, recipe names, source (nytimes, bonappetit), time constraints
 - **Smart caching** - LRU cache with TTL to minimize API calls
 - **Connection pooling** - Persistent HTTP connections with retry logic
-- **Recipe management** - Create, import from URL, apply tags, delete
+- **Recipe management** - Create, update, import from URL, apply tags, delete
+- **Flexible recipe updates** - Modify any recipe field (name, ingredients, instructions, times, notes)
 - **HTTP/SSE transport** - Runs as a persistent service, no SSH required
 
 ## Requirements
@@ -96,7 +97,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | Local | http://192.168.2.100:8096/sse |
 | Tailscale | http://100.78.245.24:8096/sse |
 
-## Available Tools (26 total)
+## Available Tools (27 total)
 
 ### Recipe Management
 | Tool | Description |
@@ -107,6 +108,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_random_recipe` | Get a random recipe suggestion |
 | `create_recipe` | Create a new recipe manually |
 | `create_recipe_from_url` | Import recipe from URL |
+| `update_recipe` | Update recipe fields (name, ingredients, instructions, times, etc.) |
 | `apply_tags` | Apply tags to a recipe |
 | `delete_recipe` | Delete a recipe |
 
@@ -169,6 +171,79 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 "Add chicken stir fry to my list"       - add_recipe_to_shopping_list
 "Add milk to shopping list"             - add_to_shopping_list
 ```
+
+### Updating Recipes
+
+The `update_recipe` tool allows modifying any field of an existing recipe. Only fields you specify are changed; others remain untouched.
+
+**Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `slug` | string | Recipe slug (required) |
+| `name` | string | New recipe name |
+| `description` | string | New description |
+| `ingredients` | list[str] | New ingredients list (replaces all existing) |
+| `instructions` | list[str] | New instruction steps (replaces all existing) |
+| `prep_time` | string | Prep time (e.g., "15 minutes") |
+| `cook_time` | string | Cook time (e.g., "30 minutes") |
+| `total_time` | string | Total time |
+| `servings` | string | Yield (e.g., "4 servings") |
+| `notes` | list[str] | Recipe notes (replaces all existing) |
+
+**Examples:**
+```python
+# Fix a typo in the recipe name
+update_recipe(slug="chiken-piccata", name="Chicken Piccata")
+
+# Update cooking time
+update_recipe(slug="beef-stew", cook_time="2 hours", total_time="2 hours 30 minutes")
+
+# Replace ingredients (useful for scaling or substitutions)
+update_recipe(
+    slug="pancakes",
+    ingredients=[
+        "2 cups flour",
+        "2 eggs",
+        "1.5 cups milk",
+        "2 tbsp melted butter",
+        "1 tbsp sugar",
+        "1 tsp baking powder"
+    ],
+    servings="8 pancakes"
+)
+
+# Add cooking notes
+update_recipe(
+    slug="grilled-salmon",
+    notes=[
+        "Works great with cedar planks",
+        "Let rest 5 minutes before serving"
+    ]
+)
+
+# Complete recipe overhaul
+update_recipe(
+    slug="basic-pasta",
+    name="Garlic Butter Pasta",
+    description="Simple weeknight pasta with garlic butter sauce",
+    ingredients=["1 lb spaghetti", "4 cloves garlic", "1/2 cup butter", "Parmesan"],
+    instructions=[
+        "Cook pasta according to package directions",
+        "Mince garlic and sauté in butter until fragrant",
+        "Toss pasta with garlic butter",
+        "Top with freshly grated Parmesan"
+    ],
+    prep_time="5 minutes",
+    cook_time="15 minutes",
+    servings="4 servings"
+)
+```
+
+**How it works:**
+1. Fetches the current recipe from Mealie
+2. Merges your changes into the recipe object
+3. Sends the updated recipe back via PUT request
+4. Invalidates the cache so subsequent reads get fresh data
 
 ## Service Management
 
