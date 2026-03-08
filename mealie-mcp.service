@@ -5,7 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User=mcp
+Group=mcp
 WorkingDirectory=/opt/mcp-servers/mealie
 ExecStart=/opt/mcp-servers/mealie/run-proxy.sh
 Restart=always
